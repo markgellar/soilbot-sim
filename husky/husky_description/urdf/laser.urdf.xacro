@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <link name="zed_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.175 0.033 0.03"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.175 0.033 0.03"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.16"/>
+      <inertia ixx="0.001" ixy="0" ixz="0"
+               iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="zed_joint" type="fixed">
+    <parent link="top_plate_link"/>
+    <child link="zed_link"/>
+    <origin xyz="0.2 0.0 0.15" rpy="0 0 0"/>
+  </joint>
+
+  <link name="zed_optical_frame"/>
+
+  <joint name="zed_optical_joint" type="fixed">
+    <parent link="zed_link"/>
+    <child link="zed_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+  <gazebo reference="zed_link">
+    <sensor type="depth" name="zed_depth_camera">
+      <update_rate>15</update_rate>
+      <camera name="zed">
+        <horizontal_fov>1.7</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.3</near>
+          <far>20.0</far>
+        </clip>
+      </camera>
+      <plugin name="zed_camera_plugin" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>~/image_raw:=/zed/image_raw</remapping>
+          <remapping>~/depth/image_raw:=/zed/depth/image_raw</remapping>
+          <remapping>~/points:=/zed/points</remapping>
+          <remapping>~/camera_info:=/zed/camera_info</remapping>
+        </ros>
+        <camera_name>zed</camera_name>
+        <frame_name>zed_optical_frame</frame_name>
+        <min_depth>0.3</min_depth>
+        <max_depth>20.0</max_depth>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

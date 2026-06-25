@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+<!--
+  OS1-64 Sensor + Custom Plugin for Husky
+  
+  HOW TO USE:
+    1. Include this file in your Husky's main xacro
+    2. Call the macro with your desired parent link
+  
+  WHY TWO <gazebo> BLOCKS:
+    The first block defines the raw ray sensor on the link — Gazebo creates
+    the sensor and fires rays, but nothing publishes the data to ROS.
+    
+    The second block loads our custom MODEL plugin that finds that sensor,
+    reads its ray data, and publishes PointCloud2 on the specified topic
+    using a plain rclcpp::Node. No <remapping> tag is involved anywhere,
+    so gazebo_ros2_control's YAML parser is never confused.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="os1_64_sensor">
+
+  <xacro:macro name="os1_64_lidar" params="name:=os1 parent_link:=top_plate_link
+                                             xyz:='0 0 0.04' rpy:='0 0 0'
+                                             topic:=/ouster/points
+                                             hz:=10 h_samples:=1024
+                                             gpu:=false">
+
+    <!-- ============================================================ -->
+    <!-- Physical link (visual + collision + inertia)                  -->
+    <!-- ============================================================ -->
+    <link name="${name}_lidar_link">
+      <visual>
+        <geometry>
+          <cylinder radius="0.0435" length="0.0735"/>
+        </geometry>
+        <material name="ouster_dark">
+          <color rgba="0.15 0.15 0.15 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder radius="0.0435" length="0.0735"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.447"/>
+        <inertia ixx="0.0004" ixy="0" ixz="0"
+                 iyy="0.0004" iyz="0" izz="0.0004"/>
+      </inertial>
+    </link>
+
+    <joint name="${name}_lidar_joint" type="fixed">
+      <parent link="${parent_link}"/>
+      <child link="${name}_lidar_link"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <!-- ============================================================ -->
+    <!-- BLOCK 1: Raw ray sensor on the link (NO plugin inside)        -->
+    <!--                                                                -->
+    <!-- This is SAFE to put in the URDF — it contains no <remapping>  -->
+    <!-- tags, so it won't break gazebo_ros2_control.                  -->
+    <!-- ============================================================ -->
+    <xacro:property name="sensor_type" value="${'gpu_ray' if gpu else 'ray'}"/>
+
+    <gazebo reference="${name}_lidar_link">
+      <sensor type="${sensor_type}" name="${name}_sensor">
+        <pose>0 0 0 0 0 0</pose>
+        <visualize>false</visualize>
+        <update_rate>${hz}</update_rate>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>${h_samples}</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159265</min_angle>
+              <max_angle>3.14159265</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>64</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.39269908</min_angle>  <!-- -22.5 deg -->
+              <max_angle>0.39269908</max_angle>    <!-- +22.5 deg -->
+            </vertical>
+          </scan>
+          <range>
+            <min>0.8</min>
+            <max>120.0</max>
+            <resolution>0.003</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.008</stddev>
+          </noise>
+        </ray>
+        <!--
+          IMPORTANT: There is intentionally NO <plugin> element here.
+          The standard libgazebo_ros_ray_sensor.so would go here, but
+          its <remapping> tag is what breaks gazebo_ros2_control.
+        -->
+      </sensor>
+    </gazebo>
+
+    <!-- ============================================================ -->
+    <!-- BLOCK 2: Custom MODEL plugin (publishes PointCloud2)          -->
+    <!--                                                                -->
+    <!-- This is a MODEL plugin, not a SENSOR plugin. It uses plain    -->
+    <!-- <topic_name> instead of <remapping>, avoiding the `:=` syntax -->
+    <!-- that breaks the YAML parser.                                  -->
+    <!-- ============================================================ -->
+    <gazebo>
+      <plugin name="${name}_pc2_publisher" filename="libos1_gazebo_plugin.so">
+        <sensor_name>${name}_sensor</sensor_name>
+        <topic_name>${topic}</topic_name>
+        <frame_name>${name}_lidar_link</frame_name>
+        <min_intensity>0</min_intensity>
+      </plugin>
+    </gazebo>
+
+  </xacro:macro>
+</robot>
