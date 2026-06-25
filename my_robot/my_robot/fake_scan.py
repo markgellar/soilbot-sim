@@ -16,7 +16,7 @@ class FakeScanPublisher(Node):
     def publish_scan(self):
         msg = LaserScan()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = 'os1_lidar_link'
+        msg.header.frame_id = 'sensor_box_link'
 
         msg.angle_min = -math.pi
         msg.angle_max = math.pi

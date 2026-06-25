@@ -21,7 +21,7 @@ class LidarAttacher(Node):
     def update_pose(self):
         try:
             transform = self.tf_buffer.lookup_transform(
-                'odom', 'os1_lidar_link', rclpy.time.Time())
+                'odom', 'sensor_box_link', rclpy.time.Time())
 
             msg = ModelState()
             msg.model_name = 'os1_sensor_model'

@@ -18,7 +18,7 @@ class LidarSensorSpawner(Node):
         # Wait for the robot to fully spawn
         time.sleep(3.0)
 
-        # Get the current pose of os1_lidar_link from tf
+        # Get the current pose of sensor_box_link from tf
         self.spawn_sensor()
 
     def spawn_sensor(self):
@@ -56,7 +56,7 @@ class LidarSensorSpawner(Node):
             <remapping>~/out:=/ouster/points</remapping>
           </ros>
           <output_type>sensor_msgs/PointCloud2</output_type>
-          <frame_name>os1_lidar_link</frame_name>
+          <frame_name>sensor_box_link</frame_name>
         </plugin>
       </sensor>
     </link>
